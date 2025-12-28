@@ -153,6 +153,7 @@ export default {
   },
 
   publicRuntimeConfig: {
+    apiBaseURL: process.env.API_BASE_URL || 'http://localhost:8000',
     checkoutURL: process.env.CHECKOUT_URL,
     enterpriseCheckoutURL: process.env.ENTERPRISE_CHECKOUT_URL,
     cloudflareTurnstileSiteKey: process.env.CLOUDFLARE_TURNSTILE_SITE_KEY,

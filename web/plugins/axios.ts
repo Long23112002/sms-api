@@ -1,11 +1,56 @@
 import axios from 'axios'
 
+// Function to get API base URL from runtime config
+function getApiBaseURL(): string {
+  // Try to get from Nuxt runtime config (available in client after app loads)
+  if (typeof window !== 'undefined') {
+    // Check window.__NUXT__ which contains the runtime config
+    const nuxtConfig = (window as any).__NUXT__?.config?.publicRuntimeConfig
+    if (nuxtConfig?.apiBaseURL) {
+      return nuxtConfig.apiBaseURL
+    }
+    // Also try $nuxt instance if available
+    if ((window as any).$nuxt?.$config?.publicRuntimeConfig?.apiBaseURL) {
+      return (window as any).$nuxt.$config.publicRuntimeConfig.apiBaseURL
+    }
+  }
+  // Fallback to environment variable (for build time or SSR)
+  return process.env.API_BASE_URL || 'http://localhost:8000'
+}
+
 const client = axios.create({
-  baseURL: process.env.API_BASE_URL || 'http://localhost:8000',
+  baseURL: getApiBaseURL(),
   headers: {
     'X-Client-Version': process.env.GITHUB_SHA || 'dev',
   },
 })
+
+// Update baseURL when runtime config is available (for client-side)
+if (typeof window !== 'undefined') {
+  // Function to update baseURL from runtime config
+  const updateBaseURL = () => {
+    const newBaseURL = getApiBaseURL()
+    if (newBaseURL && newBaseURL !== client.defaults.baseURL) {
+      client.defaults.baseURL = newBaseURL
+    }
+  }
+
+  // Try to update immediately
+  updateBaseURL()
+
+  // Also update when DOM is ready (Nuxt config should be available by then)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateBaseURL)
+  } else {
+    // DOM already loaded, try after a short delay to ensure Nuxt is ready
+    setTimeout(updateBaseURL, 100)
+  }
+
+  // Also listen for Nuxt ready event if available
+  if ((window as any).$nuxt) {
+    ;(window as any).$nuxt.$once('hook:mounted', updateBaseURL)
+  }
+}
 
 // Storage keys
 const API_KEY_STORAGE_KEY = 'api_key'
