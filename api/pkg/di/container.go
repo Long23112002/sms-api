@@ -179,7 +179,7 @@ func (container *Container) App() (app *fiber.App) {
 	app.Use(otelfiber.Middleware())
 	app.Use(cors.New(
 		cors.Config{
-			AllowOrigins:     getEnvWithDefault("CORS_ALLOW_ORIGINS", "*"),
+			AllowOrigins:     getEnvWithDefault("CORS_ALLOW_ORIGINS", "https://sms.lubumall.com,*"),
 			AllowHeaders:     getEnvWithDefault("CORS_ALLOW_HEADERS", "*"),
 			AllowMethods:     getEnvWithDefault("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
 			AllowCredentials: false,
