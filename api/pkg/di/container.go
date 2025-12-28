@@ -181,24 +181,27 @@ func (container *Container) App() (app *fiber.App) {
 	
 	// Parse CORS origins - support comma-separated list or "*"
 	corsOriginsEnv := getEnvWithDefault("CORS_ALLOW_ORIGINS", "https://sms.lubumall.com,*")
-	var allowOrigins string
+	var allowOrigins interface{}
 	if corsOriginsEnv == "*" {
 		allowOrigins = "*"
 	} else {
-		// Split by comma and trim spaces, then join back
-		// Fiber CORS supports comma-separated string for multiple origins
+		// Split by comma and trim spaces
 		origins := strings.Split(corsOriginsEnv, ",")
 		var cleanedOrigins []string
 		for _, origin := range origins {
 			trimmed := strings.TrimSpace(origin)
-			if trimmed != "" {
+			if trimmed != "" && trimmed != "*" {
 				cleanedOrigins = append(cleanedOrigins, trimmed)
 			}
 		}
-		if len(cleanedOrigins) > 0 {
-			allowOrigins = strings.Join(cleanedOrigins, ",")
-		} else {
+		// Use slice for multiple origins, string for single origin or "*"
+		if len(cleanedOrigins) == 0 {
 			allowOrigins = "*"
+		} else if len(cleanedOrigins) == 1 {
+			allowOrigins = cleanedOrigins[0]
+		} else {
+			// Multiple origins - use slice
+			allowOrigins = cleanedOrigins
 		}
 	}
 	
