@@ -15,7 +15,7 @@ function getApiBaseURL(): string {
     }
   }
   // Fallback to environment variable (for build time or SSR)
-  return process.env.API_BASE_URL || 'http://localhost:8000'
+  return process.env.API_BASE_URL || 'http://103.77.160.47:8000'
 }
 
 const client = axios.create({
