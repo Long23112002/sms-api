@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	plunk "github.com/NdoleStudio/plunk-go"
@@ -177,9 +178,33 @@ func (container *Container) App() (app *fiber.App) {
 	}
 
 	app.Use(otelfiber.Middleware())
+	
+	// Parse CORS origins - support comma-separated list or "*"
+	corsOriginsEnv := getEnvWithDefault("CORS_ALLOW_ORIGINS", "https://sms.lubumall.com,*")
+	var allowOrigins string
+	if corsOriginsEnv == "*" {
+		allowOrigins = "*"
+	} else {
+		// Split by comma and trim spaces, then join back
+		// Fiber CORS supports comma-separated string for multiple origins
+		origins := strings.Split(corsOriginsEnv, ",")
+		var cleanedOrigins []string
+		for _, origin := range origins {
+			trimmed := strings.TrimSpace(origin)
+			if trimmed != "" {
+				cleanedOrigins = append(cleanedOrigins, trimmed)
+			}
+		}
+		if len(cleanedOrigins) > 0 {
+			allowOrigins = strings.Join(cleanedOrigins, ",")
+		} else {
+			allowOrigins = "*"
+		}
+	}
+	
 	app.Use(cors.New(
 		cors.Config{
-			AllowOrigins:     getEnvWithDefault("CORS_ALLOW_ORIGINS", "https://sms.lubumall.com,*"),
+			AllowOrigins:     allowOrigins,
 			AllowHeaders:     getEnvWithDefault("CORS_ALLOW_HEADERS", "*"),
 			AllowMethods:     getEnvWithDefault("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
 			AllowCredentials: false,
