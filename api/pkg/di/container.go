@@ -181,9 +181,16 @@ func (container *Container) App() (app *fiber.App) {
 	
 	// Parse CORS origins - support comma-separated list or "*"
 	corsOriginsEnv := getEnvWithDefault("CORS_ALLOW_ORIGINS", "https://sms.lubumall.com,*")
-	var allowOrigins interface{}
+	var corsConfig cors.Config
+	
 	if corsOriginsEnv == "*" {
-		allowOrigins = "*"
+		corsConfig = cors.Config{
+			AllowOrigins:     "*",
+			AllowHeaders:     getEnvWithDefault("CORS_ALLOW_HEADERS", "*"),
+			AllowMethods:     getEnvWithDefault("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
+			AllowCredentials: false,
+			ExposeHeaders:    getEnvWithDefault("CORS_EXPOSE_HEADERS", "*"),
+		}
 	} else {
 		// Split by comma and trim spaces
 		origins := strings.Split(corsOriginsEnv, ",")
@@ -194,26 +201,29 @@ func (container *Container) App() (app *fiber.App) {
 				cleanedOrigins = append(cleanedOrigins, trimmed)
 			}
 		}
-		// Use slice for multiple origins, string for single origin or "*"
+		
+		// Use string for all cases (Fiber CORS supports comma-separated string)
 		if len(cleanedOrigins) == 0 {
-			allowOrigins = "*"
-		} else if len(cleanedOrigins) == 1 {
-			allowOrigins = cleanedOrigins[0]
+			corsConfig = cors.Config{
+				AllowOrigins:     "*",
+				AllowHeaders:     getEnvWithDefault("CORS_ALLOW_HEADERS", "*"),
+				AllowMethods:     getEnvWithDefault("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
+				AllowCredentials: false,
+				ExposeHeaders:    getEnvWithDefault("CORS_EXPOSE_HEADERS", "*"),
+			}
 		} else {
-			// Multiple origins - use slice
-			allowOrigins = cleanedOrigins
+			// Join multiple origins with comma
+			corsConfig = cors.Config{
+				AllowOrigins:     strings.Join(cleanedOrigins, ","),
+				AllowHeaders:     getEnvWithDefault("CORS_ALLOW_HEADERS", "*"),
+				AllowMethods:     getEnvWithDefault("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
+				AllowCredentials: false,
+				ExposeHeaders:    getEnvWithDefault("CORS_EXPOSE_HEADERS", "*"),
+			}
 		}
 	}
 	
-	app.Use(cors.New(
-		cors.Config{
-			AllowOrigins:     allowOrigins,
-			AllowHeaders:     getEnvWithDefault("CORS_ALLOW_HEADERS", "*"),
-			AllowMethods:     getEnvWithDefault("CORS_ALLOW_METHODS", "GET,POST,PUT,DELETE,OPTIONS"),
-			AllowCredentials: false,
-			ExposeHeaders:    getEnvWithDefault("CORS_EXPOSE_HEADERS", "*"),
-		}),
-	)
+	app.Use(cors.New(corsConfig))
 	app.Use(middlewares.HTTPRequestLogger(container.Tracer(), container.Logger()))
 	app.Use(middlewares.BearerAuth(container.Logger(), container.Tracer(), container.FirebaseAuthClient()))
 	app.Use(middlewares.APIKeyAuth(container.Logger(), container.Tracer(), container.UserRepository()))
